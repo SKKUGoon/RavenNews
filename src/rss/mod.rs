@@ -1,10 +1,10 @@
 pub mod bloomberg;
 pub mod coindesk;
 pub mod reuters;
-// pub mod seeking_alpha;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::error::Error;
 use uuid::Uuid;
 
@@ -18,21 +18,39 @@ pub struct RssItem {
     pub published_at: DateTime<Utc>,
 }
 
+fn generate_rss_item_id(source: &str, title: &str, published_at: &DateTime<Utc>) -> Uuid {
+    let mut hasher = Sha256::new();
+    hasher.update(source.as_bytes());
+    hasher.update(title.as_bytes());
+    hasher.update(published_at.to_rfc3339().as_bytes());
+
+    let hash = hasher.finalize();
+    let bytes: [u8; 16] = hash[..16].try_into().unwrap();
+    Uuid::from_bytes(bytes)
+}
+
 impl RssItem {
     pub fn new(
-        feed_name: impl Into<String>,
+        source_name: impl Into<String>,
         title: impl Into<String>,
         link: impl Into<String>,
         summary: Option<String>,
         published_at: Option<DateTime<Utc>>,
     ) -> Self {
+        let source_str = source_name.into();
+        let title_str = title.into();
+        let link_str = link.into();
+        let published_at_dt = published_at.unwrap_or_else(Utc::now);
+
+        let id = generate_rss_item_id(&source_str, &title_str, &published_at_dt);
+
         Self {
-            id: Uuid::new_v4(),
-            source: feed_name.into(),
-            title: title.into(),
-            link: link.into(),
+            id,
+            source: source_str,
+            title: title_str,
+            link: link_str,
             summary,
-            published_at: published_at.unwrap_or_else(Utc::now),
+            published_at: published_at_dt,
         }
     }
 }
