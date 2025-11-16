@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS warehouse.rss_items (
     link TEXT NOT NULL,
     summary TEXT,
     published_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_rss_items_source ON warehouse.rss_items (source);
