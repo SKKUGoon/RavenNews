@@ -1488,6 +1488,7 @@ name = "raven-news"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "dotenvy",
  "quick-xml 0.38.4",
  "reqwest",
  "rss",
