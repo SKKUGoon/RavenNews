@@ -1493,6 +1493,7 @@ dependencies = [
  "reqwest",
  "rss",
  "serde",
+ "sha2",
  "sqlx",
  "tokio",
  "uuid",

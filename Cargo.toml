@@ -13,6 +13,7 @@ uuid = { version = "1.18.1", features = ["v4", "serde"] }
 sqlx = { version = "0.8.3", features = ["runtime-tokio-native-tls", "postgres", "chrono", "uuid", "macros"] }
 quick-xml = "0.38.4"
 dotenvy = "0.15.7"
+sha2 = "0.10.9"
 
 [dev-dependencies]
 dotenvy = "0.15.7"
