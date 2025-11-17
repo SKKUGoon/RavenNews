@@ -1,4 +1,5 @@
 use crate::db::insert_rss_item;
+use crate::error::RssIngestionError;
 use crate::rss::{
     RssParser, bloomberg::BloombergRssParser, coindesk::CoindeskRssParser,
     reuters::ReutersRssParser,
@@ -8,7 +9,7 @@ use tokio::select;
 use tokio::time::{Duration, interval};
 use tracing::info;
 
-async fn fetch_bloomberg_wealth(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn fetch_bloomberg_wealth(pool: &PgPool) -> Result<(), RssIngestionError> {
     let url = "https://feeds.bloomberg.com/wealth/news.rss";
     let xml = reqwest::get(url).await?.text().await?;
 
@@ -22,7 +23,7 @@ async fn fetch_bloomberg_wealth(pool: &PgPool) -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
-async fn fetch_bloomberg_economics(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn fetch_bloomberg_economics(pool: &PgPool) -> Result<(), RssIngestionError> {
     let url = "https://feeds.bloomberg.com/economics/news.rss";
     let xml = reqwest::get(url).await?.text().await?;
 
@@ -36,7 +37,7 @@ async fn fetch_bloomberg_economics(pool: &PgPool) -> Result<(), Box<dyn std::err
     Ok(())
 }
 
-async fn fetch_bloomberg_markets(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn fetch_bloomberg_markets(pool: &PgPool) -> Result<(), RssIngestionError> {
     let url = "https://feeds.bloomberg.com/markets/news.rss";
     let xml = reqwest::get(url).await?.text().await?;
 
@@ -50,7 +51,7 @@ async fn fetch_bloomberg_markets(pool: &PgPool) -> Result<(), Box<dyn std::error
     Ok(())
 }
 
-async fn fetch_coindesk(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn fetch_coindesk(pool: &PgPool) -> Result<(), RssIngestionError> {
     let url = "https://www.coindesk/com/arc/outboundfeeds/rss";
     let xml = reqwest::get(url).await?.text().await?;
 
@@ -64,7 +65,7 @@ async fn fetch_coindesk(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
-async fn fetch_reuters_financial(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn fetch_reuters_financial(pool: &PgPool) -> Result<(), RssIngestionError> {
     let url = "https://ir.thomsonreuters.com/rss/news-releases.xml?items=15";
     let xml = reqwest::get(url).await?.text().await?;
 
@@ -78,7 +79,7 @@ async fn fetch_reuters_financial(pool: &PgPool) -> Result<(), Box<dyn std::error
     Ok(())
 }
 
-async fn fetch_reuters_events(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn fetch_reuters_events(pool: &PgPool) -> Result<(), RssIngestionError> {
     let url = "https://ir.thomsonreuters.com/rss/events.xml?items=15";
     let xml = reqwest::get(url).await?.text().await?;
 
@@ -92,7 +93,7 @@ async fn fetch_reuters_events(pool: &PgPool) -> Result<(), Box<dyn std::error::E
     Ok(())
 }
 
-async fn fetch_reuters_secfilings(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+async fn fetch_reuters_secfilings(pool: &PgPool) -> Result<(), RssIngestionError> {
     let url = "https://ir.thomsonreuters.com/rss/sec-filings.xml?items=15";
     let xml = reqwest::get(url).await?.text().await?;
 
@@ -106,7 +107,7 @@ async fn fetch_reuters_secfilings(pool: &PgPool) -> Result<(), Box<dyn std::erro
     Ok(())
 }
 
-pub async fn fetch_all_and_insert(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn fetch_all_and_insert(pool: &PgPool) -> Result<(), RssIngestionError> {
     fetch_bloomberg_wealth(pool).await?;
     fetch_bloomberg_economics(pool).await?;
     fetch_bloomberg_markets(pool).await?;

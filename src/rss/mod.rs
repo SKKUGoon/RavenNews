@@ -3,9 +3,9 @@ pub mod coindesk;
 pub mod reuters;
 
 use chrono::{DateTime, Utc};
+use crate::error::RssParseError;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::error::Error;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -55,7 +55,7 @@ impl RssItem {
     }
 }
 
-pub type RssResult<T> = Result<T, Box<dyn Error>>;
+pub type RssResult<T> = Result<T, RssParseError>;
 
 /// Trait: every RSS feed should implement this trait
 pub trait RssParser {

@@ -17,6 +17,7 @@ sha2 = "0.10.9"
 clap = { version = "4.5.51", features = ["derive"]}
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
+thiserror = "2.0.17"
 
 [dev-dependencies]
 dotenvy = "0.15.7"

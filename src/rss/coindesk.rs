@@ -1,3 +1,4 @@
+use crate::error::RssParseError;
 use crate::rss::strip_cdata;
 use crate::rss::{RssItem, RssParser, RssResult};
 use chrono::{DateTime, Utc};
@@ -139,7 +140,7 @@ impl RssParser for CoindeskRssParser {
                 }
 
                 Ok(Event::Eof) => break,
-                Err(e) => return Err(format!("XML parsing error: {e}").into()),
+                Err(e) => return Err(RssParseError::Xml(e.to_string())),
                 _ => {}
             }
         }
