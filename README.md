@@ -16,8 +16,28 @@ Raven News is a Rust-based CLI and library for ingesting, normalizing, and stori
 
 - Rust toolchain (`rustup` recommended).
 - `cargo` (bundled with Rust).
-- `sqlx-cli` for applying database migrations.
+- `sqlx-cli` for applying database migrations. (During development)
 - PostgreSQL instance (local or remote).
+
+## Installation
+1. **Download the release tarball:**
+   ```bash
+   VERSION=v0.1.0
+   wget https://github.com/skkugoon/RavenNews/releases/download/${VERSION}/raven-${VERSION}-x86_64-unknown-linux-gnu.tar.gz
+   ```
+2. **Extract the binaries:**
+   ```bash
+   tar -xzf raven-${VERSION}-x86_64-unknown-linux-gnu.tar.gz
+   ```
+3. **Install system-wide:**
+   ```bash
+   sudo mv raven ravenctl /usr/local/bin
+   ```
+4. **Verify installation:**
+   ```bash
+   raven -V
+   ravenctl --version
+   ```
 
 ## Quick Start
 
