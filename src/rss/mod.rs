@@ -25,7 +25,8 @@ fn generate_rss_item_id(source: &str, title: &str, published_at: &DateTime<Utc>)
     hasher.update(published_at.to_rfc3339().as_bytes());
 
     let hash = hasher.finalize();
-    let bytes: [u8; 16] = hash[..16].try_into().unwrap();
+    let mut bytes = [0u8; 16];
+    bytes.copy_from_slice(&hash[..16]);
     Uuid::from_bytes(bytes)
 }
 

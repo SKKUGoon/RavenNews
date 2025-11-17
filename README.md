@@ -1,15 +1,16 @@
-![Rust Edition](https://img.shields.io/badge/Rust-Edition%202025-b7410e) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17%2B-336791) ![SQLx](https://img.shields.io/badge/sqlx-0.8-blue)
+![Rust Edition](https://img.shields.io/badge/Rust-Edition%202025-b7410e) ![Tokio](https://img.shields.io/badge/Tokio-1.48-blueviolet) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17%2B-336791) ![SQLx](https://img.shields.io/badge/sqlx-0.8-blue)
 
 # Raven News
 
-Raven News is a Rust-based toolkit for ingesting, normalizing, and storing RSS feeds from financial news providers such as Reuters, Bloomberg, and CoinDesk. The project focuses on reliable parsing, source-aware de-duplication, and an opinionated PostgreSQL schema for long-term warehousing.
+Raven News is a Rust-based CLI and library for ingesting, normalizing, and storing RSS feeds from financial news providers such as Reuters, Bloomberg, and CoinDesk. It combines resilient fetchers, source-aware de-duplication, and an opinionated PostgreSQL schema that is ready for analytics.
 
 ## Highlights
 
+- CLI with `fetch-once`, long-running `run`, and rich `stats` sub-commands for day-to-day operations.
 - Source-specific RSS parsers built with `quick-xml`, each conforming to a shared `RssParser` trait.
 - Stable `RssItem` identifiers generated with SHA-256 fingerprints to avoid duplicates across runs.
-- PostgreSQL-backed persistence layer powered by `sqlx`, ready for warehousing and downstream analytics.
-- Async-ready foundation using `tokio`, with integration tests that exercise real feeds.
+- PostgreSQL-backed persistence layer powered by `sqlx`, with database statistics helpers.
+- Async-ready foundation using `tokio`, structured logging via `tracing`, and integration tests with sample feeds.
 
 ## Prerequisites
 
@@ -18,7 +19,7 @@ Raven News is a Rust-based toolkit for ingesting, normalizing, and storing RSS f
 - `sqlx-cli` for applying database migrations.
 - PostgreSQL instance (local or remote).
 
-## Getting Started
+## Quick Start
 
 1. Install the Rust toolchain:
    ```bash
@@ -36,32 +37,84 @@ Raven News is a Rust-based toolkit for ingesting, normalizing, and storing RSS f
    ```bash
    sqlx migrate run
    ```
-5. (Optional) Create a `.env` file to persist environment variables:
+5. (Optional) Create a `.env` file to persist environment variables for `dotenvy`:
    ```bash
    cat <<'EOF' > .env
    DATABASE_URL=postgres://postgres:password@localhost:5432/raven_news
+   RUST_LOG=info
    EOF
    ```
+6. Verify the connection and insert a snapshot of items:
+   ```bash
+   cargo run -- fetch-once
+   ```
 
-## Running the Parsers
+## Configuration
 
-The project is organized as a reusable library. You can experiment from a `cargo` REPL (e.g., `cargo rustc -- --cfg REPL`) or by creating a small binary in `src/main.rs` that calls into the parsers. Example snippet:
+- `DATABASE_URL` must be provided; `dotenvy` will automatically load a local `.env` file.
+- Logging is handled by `tracing` with `EnvFilter`; set `RUST_LOG=debug` to increase verbosity.
+- Modify the fetch cadence by editing `tokio::time::interval` in `src/ingest/mod.rs`.
+
+## CLI Usage
+
+| Command | Purpose |
+| --- | --- |
+| `cargo run -- fetch-once` | Fetch all configured RSS feeds once and persist them. |
+| `cargo run -- run` | Start the scheduler loop (polls every 60 seconds until `Ctrl+C`). |
+| `cargo run -- stats total` | Print the total number of stored RSS items. |
+| `cargo run -- stats daily` | Print the count of items ingested since midnight. |
+| `cargo run -- stats source <name>` | Print the count for a specific source (for example `reuters`). |
+
+## Parser Library
+
+The CLI is backed by a library that you can embed elsewhere. Parsers live in `src/rss` and implement the shared `RssParser` trait. Example:
 
 ```rust
-use rss::reuters::ReutersRssParser;
-use rss::RssParser;
+use raven_news::rss::{reuters::ReutersRssParser, RssParser};
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let xml = reqwest::get("https://ir.thomsonreuters.com/rss/news-releases.xml?items=5")
-        .await?
-        .text()
-        .await?;
-    let parser = ReutersRssParser;
-    let items = parser.parse(&xml)?;
-    println!("Fetched {} items", items.len());
-    Ok(())
-}
+let xml = reqwest::get("https://ir.thomsonreuters.com/rss/news-releases.xml?items=5")
+    .await?
+    .text()
+    .await?;
+let parser = ReutersRssParser;
+let items = parser.parse(&xml)?;
+```
+
+Available parser modules:
+
+- `rss::bloomberg` ingests wealth, economics, and markets feeds.
+- `rss::coindesk` supports domain-tagged categories and multiple authors.
+- `rss::reuters` handles financial, event, and SEC filing feeds.
+
+Each parser defers to `RssItem::new`, which produces deterministic UUIDs by hashing the source, title, and publish timestamp.
+
+## Database Layout
+
+- Migration `100_create_warehouse_schema.sql` creates schema `warehouse` with table `rss_items`.
+- The table enforces unique `id` keys, stores canonical metadata, and timestamps every insert.
+- Database helpers in `src/db/stats.rs` expose total, daily, and per-source counts for reporting.
+
+## Testing
+
+- Run unit and integration suites with:
+  ```bash
+  cargo test
+  ```
+- Database-aware tests require `DATABASE_URL` pointing to a writable PostgreSQL instance.
+- The integration test at `tests/insert_process.rs` uses `tests/data/bloomberg_test.xml` to validate deduplication.
+
+## Project Structure
+
+```
+├── migrations/                # SQLx migrations defining the warehouse schema
+├── src/
+│   ├── db/                    # PostgreSQL pool + insert & stats helpers
+│   ├── ingest/                # Fetchers and scheduler loop
+│   ├── rss/                   # Source-specific parsers implementing RssParser
+│   ├── error.rs               # Domain error types
+│   └── main.rs                # CLI entry point (clap-based)
+├── tests/                     # Integration tests and fixtures
+└── Cargo.toml
 ```
 
 ## Tests
