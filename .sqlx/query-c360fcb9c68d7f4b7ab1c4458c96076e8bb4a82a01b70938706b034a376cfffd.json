@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO warehouse.rss_items (id, source, title, link, summary, published_at)\n        VALUES ($1, $2, $3, $4, $5, $6)\n        ON CONFLICT (id) DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c360fcb9c68d7f4b7ab1c4458c96076e8bb4a82a01b70938706b034a376cfffd"
+}

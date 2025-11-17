@@ -21,3 +21,6 @@ thiserror = "2.0.17"
 
 [dev-dependencies]
 dotenvy = "0.15.7"
+
+[package.metadata.sqlx]
+offline = true
