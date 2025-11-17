@@ -4,7 +4,9 @@ use crate::rss::{
     reuters::ReutersRssParser,
 };
 use sqlx::PgPool;
+use tokio::select;
 use tokio::time::{Duration, interval};
+use tracing::info;
 
 async fn fetch_bloomberg_wealth(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let url = "https://feeds.bloomberg.com/wealth/news.rss";
@@ -119,12 +121,20 @@ pub async fn fetch_all_and_insert(pool: &PgPool) -> Result<(), Box<dyn std::erro
 pub async fn run_scheduler(pool: PgPool) {
     let mut ticker = interval(Duration::from_secs(60));
 
+    info!("Ingestion scheduler started. Press Ctrl+C to stop.");
     loop {
-        ticker.tick().await;
-
-        println!("Running scheduled RSS fetch...");
-        if let Err(e) = fetch_all_and_insert(&pool).await {
-            eprintln!("Error fetching RSS: {e}");
+        select! {
+            _ = ticker.tick() => {
+                info!("Running scheduled RSS fetch...");
+                if let Err(e) = fetch_all_and_insert(&pool).await {
+                    eprintln!("Error fetching RSS: {e}");
+                }
+            }
+            _ = tokio::signal::ctrl_c() => {
+                info!("Shutdown signal received. Stopping ingestion scheduler...");
+                break;
+            }
         }
     }
+    info!("Ingestion scheduler stopped.");
 }
