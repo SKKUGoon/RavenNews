@@ -14,6 +14,9 @@ sqlx = { version = "0.8.3", features = ["runtime-tokio-native-tls", "postgres", 
 quick-xml = "0.38.4"
 dotenvy = "0.15.7"
 sha2 = "0.10.9"
+clap = { version = "4.5.51", features = ["derive"]}
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
 
 [dev-dependencies]
 dotenvy = "0.15.7"

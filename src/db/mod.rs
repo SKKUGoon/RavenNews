@@ -1,3 +1,5 @@
+pub mod stats;
+
 use crate::rss::RssItem;
 use sqlx::{PgPool, postgres::PgPoolOptions};
 
