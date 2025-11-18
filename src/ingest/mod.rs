@@ -9,112 +9,84 @@ use tokio::select;
 use tokio::time::{Duration, interval};
 use tracing::info;
 
-async fn fetch_bloomberg_wealth(pool: &PgPool) -> Result<(), RssIngestionError> {
-    let url = "https://feeds.bloomberg.com/wealth/news.rss";
-    let xml = reqwest::get(url).await?.text().await?;
-
-    let parser = BloombergRssParser;
-    let items = parser.parse(&xml)?;
-
-    for item in &items {
-        insert_rss_item(pool, item).await?;
-    }
-
-    Ok(())
+struct Feed {
+    name: &'static str,
+    url: &'static str,
+    parser: &'static dyn RssParser,
+    active: bool,
 }
 
-async fn fetch_bloomberg_economics(pool: &PgPool) -> Result<(), RssIngestionError> {
-    let url = "https://feeds.bloomberg.com/economics/news.rss";
-    let xml = reqwest::get(url).await?.text().await?;
+static BLOOMBERG: BloombergRssParser = BloombergRssParser;
+static COINDESK: CoindeskRssParser = CoindeskRssParser;
+static REUTERS: ReutersRssParser = ReutersRssParser;
 
-    let parser = BloombergRssParser;
-    let items = parser.parse(&xml)?;
+const FEEDS: [Feed; 7] = [
+    Feed {
+        name: "bloomberg_wealth",
+        url: "https://feeds.bloomberg.com/wealth/news.rss",
+        parser: &BLOOMBERG,
+        active: true,
+    },
+    Feed {
+        name: "bloomberg_economics",
+        url: "https://feeds.bloomberg.com/economics/news.rss",
+        parser: &BLOOMBERG,
+        active: true,
+    },
+    Feed {
+        name: "bloomberg_markets",
+        url: "https://feeds.bloomberg.com/markets/news.rss",
+        parser: &BLOOMBERG,
+        active: true,
+    },
+    Feed {
+        name: "coindesk",
+        url: "https://www.coindesk.com/arc/outboundfeeds/rss",
+        parser: &COINDESK,
+        active: true,
+    },
+    Feed {
+        name: "reuters_financial",
+        url: "https://ir.thomsonreuters.com/rss/news-releases.xml?items=15",
+        parser: &REUTERS,
+        active: false, // Reuters financial no longer offers public free RSS feeds
+    },
+    Feed {
+        name: "reuters_events",
+        url: "https://ir.thomsonreuters.com/rss/events.xml?items=15",
+        parser: &REUTERS,
+        active: false,
+    },
+    Feed {
+        name: "reuters_secfilings",
+        url: "https://ir.thomsonreuters.com/rss/sec-filings.xml?items=15",
+        parser: &REUTERS,
+        active: false,
+    },
+];
 
-    for item in &items {
-        insert_rss_item(pool, item).await?;
-    }
-
-    Ok(())
-}
-
-async fn fetch_bloomberg_markets(pool: &PgPool) -> Result<(), RssIngestionError> {
-    let url = "https://feeds.bloomberg.com/markets/news.rss";
-    let xml = reqwest::get(url).await?.text().await?;
-
-    let parser = BloombergRssParser;
-    let items = parser.parse(&xml)?;
-
-    for item in &items {
-        insert_rss_item(pool, item).await?;
-    }
-
-    Ok(())
-}
-
-async fn fetch_coindesk(pool: &PgPool) -> Result<(), RssIngestionError> {
-    let url = "https://www.coindesk/com/arc/outboundfeeds/rss";
-    let xml = reqwest::get(url).await?.text().await?;
-
-    let parser = CoindeskRssParser;
-    let items = parser.parse(&xml)?;
-
-    for item in &items {
-        insert_rss_item(pool, item).await?;
-    }
-
-    Ok(())
-}
-
-async fn fetch_reuters_financial(pool: &PgPool) -> Result<(), RssIngestionError> {
-    let url = "https://ir.thomsonreuters.com/rss/news-releases.xml?items=15";
-    let xml = reqwest::get(url).await?.text().await?;
-
-    let parser = ReutersRssParser;
-    let items = parser.parse(&xml)?;
-
-    for item in &items {
-        insert_rss_item(pool, item).await?;
-    }
-
-    Ok(())
-}
-
-async fn fetch_reuters_events(pool: &PgPool) -> Result<(), RssIngestionError> {
-    let url = "https://ir.thomsonreuters.com/rss/events.xml?items=15";
-    let xml = reqwest::get(url).await?.text().await?;
-
-    let parser = ReutersRssParser;
-    let items = parser.parse(&xml)?;
+async fn fetch_and_insert(pool: &PgPool, feed: &Feed) -> Result<(), RssIngestionError> {
+    let xml = reqwest::get(feed.url).await?.text().await?;
+    let items = feed.parser.parse(&xml)?;
 
     for item in &items {
-        insert_rss_item(pool, item).await?;
-    }
-
-    Ok(())
-}
-
-async fn fetch_reuters_secfilings(pool: &PgPool) -> Result<(), RssIngestionError> {
-    let url = "https://ir.thomsonreuters.com/rss/sec-filings.xml?items=15";
-    let xml = reqwest::get(url).await?.text().await?;
-
-    let parser = ReutersRssParser;
-    let items = parser.parse(&xml)?;
-
-    for item in &items {
-        insert_rss_item(pool, item).await?;
+        if feed.active {
+            insert_rss_item(pool, item).await?;
+        }
     }
 
     Ok(())
 }
 
 pub async fn fetch_all_and_insert(pool: &PgPool) -> Result<(), RssIngestionError> {
-    fetch_bloomberg_wealth(pool).await?;
-    fetch_bloomberg_economics(pool).await?;
-    fetch_bloomberg_markets(pool).await?;
-    fetch_coindesk(pool).await?;
-    fetch_reuters_financial(pool).await?;
-    fetch_reuters_events(pool).await?;
-    fetch_reuters_secfilings(pool).await?;
+    for feed in &FEEDS {
+        if let Err(err) = fetch_and_insert(pool, feed).await {
+            return Err(RssIngestionError::Other(format!(
+                "Feed '{}' failed: {}",
+                feed.name, err
+            )));
+        }
+    }
 
     Ok(())
 }
