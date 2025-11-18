@@ -12,31 +12,39 @@ Raven News is a Rust-based CLI and library for ingesting, normalizing, and stori
 - PostgreSQL-backed persistence layer powered by `sqlx`, with database statistics helpers.
 - Async-ready foundation using `tokio`, structured logging via `tracing`, and integration tests with sample feeds.
 
-## Prerequisites
+## Developer Prerequisites
 
 - Rust toolchain (`rustup` recommended).
 - `cargo` (bundled with Rust).
 - `sqlx-cli` for applying database migrations. (During development)
 - PostgreSQL instance (local or remote).
 
+## Non-Developer Prerequisites
+
+- PostgreSQL instance (local or remote).
+  - ```bash
+    export DATABASE_URL="postgres://<id>:<password>@<host>:<port>/<dbname>"
+    ```
+- Your choice of multiple runners. `tmux` `nohup &` etc.
+- Ready to go!
+
 ## Installation
 1. **Download the release tarball:**
    ```bash
-   VERSION=v0.1.0
-   wget https://github.com/skkugoon/RavenNews/releases/download/${VERSION}/raven-${VERSION}-x86_64-unknown-linux-gnu.tar.gz
+   VERSION=v0.1.3  # check the latest version
+   wget https://github.com/skkugoon/RavenNews/releases/download/${VERSION}/raven-news-${VERSION}-x86_64-unknown-linux-gnu.tar.gz
    ```
 2. **Extract the binaries:**
    ```bash
-   tar -xzf raven-${VERSION}-x86_64-unknown-linux-gnu.tar.gz
+   tar -xzf raven-news-${VERSION}-x86_64-unknown-linux-gnu.tar.gz
    ```
 3. **Install system-wide:**
    ```bash
-   sudo mv raven ravenctl /usr/local/bin
+   sudo mv raven-news /usr/local/bin
    ```
 4. **Verify installation:**
    ```bash
-   raven -V
-   ravenctl --version
+   raven-news --help
    ```
 
 ## Quick Start
